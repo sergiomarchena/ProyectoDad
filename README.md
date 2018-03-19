@@ -1,4 +1,5 @@
-Control de persianas=====================
+Control de persianas
+
 
 El objetivo de nuestro proyecto es controlar las persianas, que se abren y se cierran de forma automática o remotamente por el usuario.
 ¿Qué es?
