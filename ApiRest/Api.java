@@ -26,7 +26,7 @@ public class Api extends AbstractVerticle{
 				.put("port", 3306)
 				.put("database", "dad")
 				.put("username", "root")
-				.put("password", "root");
+				.put("password", "sergio");
 		
 		mySQLClient = MySQLClient.createShared
 				(vertx, mySQLClientConfig);
@@ -41,15 +41,17 @@ public class Api extends AbstractVerticle{
 			}
 		});
 
-		router.route("/Api").handler(BodyHandler.create());
+		router.route("/Api/*").handler(BodyHandler.create());
 		router.get("/Api/localizaciones/:nombre").handler(this::getLocalizaciones);
 		router.get("/Api/luces_interior/:id").handler(this::getLucesInterior);
 		router.get("/Api/persianas/:id").handler(this::getPersianas);
 		router.get("/Api/sensores/:id").handler(this::getSensores);
+		router.get("/Api/actuador/:id").handler(this::getActuadores);
 		router.put("/Api/localizaciones").handler(this::putLocalizaciones);
 		router.put("/Api/luces_interior").handler(this::putLucesInterior);
 		router.put("/Api/persianas").handler(this::putPersianas);
 		router.put("/Api/sensores").handler(this::putSensores);
+		router.put("/Api/actuador").handler(this::putActuadores);
 		
 	}
 
@@ -139,7 +141,7 @@ public class Api extends AbstractVerticle{
 				mySQLClient.getConnection(conn -> {
 					if (conn.succeeded()) {
 						SQLConnection connection = conn.result();
-						String query = "SELECT id, estado, localizacion_nombre  "
+						String query = "SELECT id, estado, localizacion_nombre, id_actuador  "
 								+ "FROM persianas "
 								+ "WHERE id = ?";
 						JsonArray paramQuery = new JsonArray()
@@ -206,6 +208,44 @@ public class Api extends AbstractVerticle{
 			routingContext.response().setStatusCode(400).end();
 		}
 	}
+	private void getActuadores(RoutingContext routingContext) {
+		String paramStr = routingContext.request().getParam("id");
+		if (paramStr != null) {
+			try {
+				int param = Integer.parseInt(paramStr);
+				
+				mySQLClient.getConnection(conn -> {
+					if (conn.succeeded()) {
+						SQLConnection connection = conn.result();
+						String query = "SELECT id, fecha, sentido  "
+								+ "FROM actuadores "
+								+ "WHERE id = ?";
+						JsonArray paramQuery = new JsonArray()
+								.add(param);
+						connection.queryWithParams(
+								query, 
+								paramQuery, 
+								res -> {
+									if (res.succeeded()) {
+										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+									}else {
+										routingContext.response().setStatusCode(400).end(
+												"Error: " + res.cause());	
+									}
+								});
+					}else {
+						routingContext.response().setStatusCode(400).end(
+								"Error: " + conn.cause());
+					}
+				});
+								
+			}catch (ClassCastException e) {
+				routingContext.response().setStatusCode(400).end();
+			}
+		}else {
+			routingContext.response().setStatusCode(400).end();
+		}
+	}
 	
 	private void putLocalizaciones(RoutingContext routingContext) {
 		Localizacion state = Json.decodeValue(routingContext.getBodyAsString(), Localizacion.class);
@@ -217,9 +257,9 @@ public class Api extends AbstractVerticle{
 		        UpdateResult result = res.result();
 		        System.out.println("Updated no. of rows: " + result.getUpdated());
 		        System.out.println("Generated keys: " + result.getKeys());
-
+		        routingContext.response().setStatusCode(200).end();
 		      } else {
-		        // Failed!
+		        routingContext.response().setStatusCode(400).end();
 		      }
 		    });
 	}
@@ -233,9 +273,9 @@ public class Api extends AbstractVerticle{
 		        UpdateResult result = res.result();
 		        System.out.println("Updated no. of rows: " + result.getUpdated());
 		        System.out.println("Generated keys: " + result.getKeys());
-
+		        routingContext.response().setStatusCode(200).end();
 		      } else {
-		        // Failed!
+		    	  routingContext.response().setStatusCode(400).end();
 		      }
 		    });
 	}
@@ -250,9 +290,9 @@ public class Api extends AbstractVerticle{
 		        UpdateResult result = res.result();
 		        System.out.println("Updated no. of rows: " + result.getUpdated());
 		        System.out.println("Generated keys: " + result.getKeys());
-
+		        routingContext.response().setStatusCode(200).end();
 		      } else {
-		        // Failed!
+		    	routingContext.response().setStatusCode(400).end();
 		      }
 		    });
 	}
@@ -266,11 +306,27 @@ public class Api extends AbstractVerticle{
 		        UpdateResult result = res.result();
 		        System.out.println("Updated no. of rows: " + result.getUpdated());
 		        System.out.println("Generated keys: " + result.getKeys());
-
+		        routingContext.response().setStatusCode(200).end();
 		      } else {
-		        // Failed!
+		    	  routingContext.response().setStatusCode(400).end();
 		      }
 		    });
 	}
+	private void putActuadores(RoutingContext routingContext) {
+		Actuador state = Json.decodeValue(routingContext.getBodyAsString(), Actuador.class);
+				
+		String update = "INSERT INTO actuadores(id, fecha, sentido) VALUES ("+state.getId() + ",'" + state.getFecha() + "','" + state.getSentido()+"',"+ "')";
+		mySQLClient.update(update, res -> {
+		      if (res.succeeded()) {
+
+		        UpdateResult result = res.result();
+		        System.out.println("Updated no. of rows: " + result.getUpdated());
+		        System.out.println("Generated keys: " + result.getKeys());
+		        routingContext.response().setStatusCode(200).end();
+		      } else {
+		    	  routingContext.response().setStatusCode(400).end();
+		      }
+		    });
 	}
+}
 
