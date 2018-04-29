@@ -1,5 +1,7 @@
 package dad.us.dadVertx;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
@@ -41,18 +43,17 @@ public class Api extends AbstractVerticle{
 			}
 		});
 
-		router.route("/Api/*").handler(BodyHandler.create());
-		router.get("/Api/localizaciones/:nombre").handler(this::getLocalizaciones);
-		router.get("/Api/luces_interior/:id").handler(this::getLucesInterior);
-		router.get("/Api/persianas/:id").handler(this::getPersianas);
-		router.get("/Api/sensores/:id").handler(this::getSensores);
-		router.get("/Api/actuador/:id").handler(this::getActuadores);
-		router.put("/Api/localizaciones").handler(this::putLocalizaciones);
-		router.put("/Api/luces_interior").handler(this::putLucesInterior);
-		router.put("/Api/persianas").handler(this::putPersianas);
-		router.put("/Api/sensores").handler(this::putSensores);
-		router.put("/Api/actuador").handler(this::putActuadores);
-		
+		router.route("/api/*").handler(BodyHandler.create());
+		router.get("/api/localizaciones/:nombre").handler(this::getLocalizaciones);
+		router.get("/api/luces_interior/:id").handler(this::getLucesInterior);
+		router.get("/api/persianas/:id").handler(this::getPersianas);
+		router.get("/api/sensores/:id").handler(this::getSensores);
+		router.get("/api/actuador/:id").handler(this::getActuadores);
+		router.put("/api/localizaciones").handler(this::putLocalizaciones);
+		router.put("/api/luces_interior").handler(this::putLucesInterior);
+		router.put("/api/persianas").handler(this::putPersianas);
+		router.put("/api/sensores").handler(this::putSensores);
+		router.put("/api/actuador").handler(this::putActuadores);	
 	}
 
 	private void getLocalizaciones(RoutingContext routingContext) {
@@ -179,7 +180,7 @@ public class Api extends AbstractVerticle{
 				mySQLClient.getConnection(conn -> {
 					if (conn.succeeded()) {
 						SQLConnection connection = conn.result();
-						String query = "SELECT id, fecha, nombre, valor, localizacion_nombre  "
+						String query = "SELECT id, max(fecha), nombre, valor, localizacion_nombre  "
 								+ "FROM sensores "
 								+ "WHERE id = ?";
 						JsonArray paramQuery = new JsonArray()
@@ -298,11 +299,19 @@ public class Api extends AbstractVerticle{
 	}
 	private void putSensores(RoutingContext routingContext) {
 		Sensor state = Json.decodeValue(routingContext.getBodyAsString(), Sensor.class);
-				
-		String update = "INSERT INTO sensores(id, fecha, nombre, valor, localizacion_nombre) VALUES ("+state.getId() + ",'" + state.getFecha() + "','" + state.getNombre()+"',"+ state.getValor()+ ",'"+ state.getLocalizacion_nombre()+"')";
+		Calendar fecha = new GregorianCalendar();
+        int anyo = fecha.get(Calendar.YEAR);
+        int mes = fecha.get(Calendar.MONTH) + 1;
+        int dia = fecha.get(Calendar.DAY_OF_MONTH);
+        int hora = fecha.get(Calendar.HOUR_OF_DAY);
+        int minuto = fecha.get(Calendar.MINUTE);
+        int segundo = fecha.get(Calendar.SECOND);
+        
+        
+		String update = "INSERT INTO sensores(id, fecha, nombre, valor, localizacion_nombre) VALUES ("+state.getId() + "," + "STR_TO_DATE('" + mes + "-" + dia + "-"+ anyo + " " + hora + ":" + minuto + ":" + segundo + "','%m-%d-%Y %H:%i:%s')" + ",'" + state.getNombre()+"',"+ state.getValor()+ ",'"+ state.getLocalizacion_nombre()+"')";
+		System.out.println(update);
 		mySQLClient.update(update, res -> {
 		      if (res.succeeded()) {
-
 		        UpdateResult result = res.result();
 		        System.out.println("Updated no. of rows: " + result.getUpdated());
 		        System.out.println("Generated keys: " + result.getKeys());
@@ -329,4 +338,5 @@ public class Api extends AbstractVerticle{
 		    });
 	}
 }
+
 
