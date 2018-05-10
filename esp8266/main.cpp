@@ -4,9 +4,9 @@
 #include <ESP8266Wifi.h>
 #include <RestClient.h>
 
-const char* ssid = "penya";
-const char* pass = "12345678";
-RestClient client = RestClient("192.168.43.100",8083);
+const char* ssid = "Orange-12A1";
+const char* pass = "375772F7";
+RestClient client = RestClient("192.168.1.102",8083);
 
 void setup() {
   pinMode(D1,OUTPUT);
@@ -33,6 +33,8 @@ void loop() {
   int estado_persiana = random(0,2); // borrar cuando tengamos el get
   int lluvia_min = 900;// borrar cuando tengamos el get
   int luz_min = 500;// borrar cuando tengamos el get
+  //motor gira derecha "cierra" 1
+  //motor gira izquierda "abre" 0
 
   //get de la base de datos
   String sensores = "";
@@ -59,54 +61,141 @@ void loop() {
   // Serial.println(valor);
 
 
-  //actuador
+  //Funcionalidad del programa
   Serial.println(sensorLuz);
   Serial.println(sensorHumedad);
   Serial.println(estado_persiana);
   if(sensorHumedad > lluvia_min && estado_persiana == 1){
+    Serial.println("Esta lloviendo: cierra la ventana y enciende la luz");
     digitalWrite(D1, HIGH);
-    Serial.println("Led on");//put luz_interior
-    Serial.println("cierra ventana"); // put persiana
-    Serial.println("motor derecha"); //put actuador
+    //put luz_interior
+    StaticJsonBuffer<300> JSONbuffer;
+    JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+    JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+    char JSONmessageLuz[300];
+    JSONLuz_interior.printTo(JSONmessageLuz);
+    int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+    // put persiana
+    JsonObject& JSONPersiana = JSONbuffer.createObject();
+    JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+    char JSONmessagePersiana[300];
+    JSONPersiana.printTo(JSONmessagePersiana);
+    int statusPutpersiana = client.put("/api/persianas/",JSONmessagePersiana);
+    //put actuador
+    JsonObject& JSONActuador = JSONbuffer.createObject();
+    JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 1;
+    char JSONmessageActuador[300];
+    JSONActuador.printTo(JSONmessageActuador);
+    int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
   }else if (sensorHumedad > lluvia_min && estado_persiana == 0){
+    Serial.println("Esta lloviendo pero la ventana esta cerrada y la luz encendida");
     digitalWrite(D1, HIGH);
-    Serial.println("Led on");
-    Serial.println("ventana ya cerrada"); 
-    Serial.println("no hacer nada");
+    //put luz_interior
+    StaticJsonBuffer<300> JSONbuffer;
+    JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+    JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+    char JSONmessageLuz[300];
+    JSONLuz_interior.printTo(JSONmessageLuz);
+    int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+    //put persiana
+    JsonObject& JSONPersiana = JSONbuffer.createObject();
+    JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+    char JSONmessagePersiana[300];
+    JSONPersiana.printTo(JSONmessagePersiana);
+    int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+
   }else{
     if(sensorLuz < luz_min && estado_persiana == 1){
+      Serial.println("Es de noche y la ventana esta abierta: cierra la ventana y enciende la luz");
       digitalWrite(D1, HIGH);
       Serial.println(sensorLuz);
       Serial.println(estado_persiana);
-      Serial.println("Led on"); // put luz_interior
-      Serial.println("cierra ventana"); // put persiana
-      Serial.println("motor derecha"); //put actuador
+      //put Luz interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      // put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+      //put actuador
+      JsonObject& JSONActuador = JSONbuffer.createObject();
+      JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 1;
+      char JSONmessageActuador[300];
+      JSONActuador.printTo(JSONmessageActuador);
+      int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
     }else if (sensorLuz > luz_min && estado_persiana == 0 && sensorHumedad < lluvia_min){
+      Serial.println("Es de dia y la ventana esta cerrada: apaga la luz abre ventana");
       digitalWrite(D1, LOW);
-      Serial.println("Led off");//put luz_interior
-      Serial.println("abre ventana");//put persiana
-      Serial.println("motor izquierda"); //put actuado
+      //put luz_interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 0;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 1;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+      //put Actuador
+      JsonObject& JSONActuador = JSONbuffer.createObject();
+      JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 0;
+      char JSONmessageActuador[300];
+      JSONActuador.printTo(JSONmessageActuador);
+      int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
     }else if(sensorLuz > luz_min && estado_persiana == 1 && sensorHumedad < lluvia_min){
+      Serial.println("Es de dia y la ventana esta abierta");
       digitalWrite(D1, LOW);
-      Serial.println("Led off");
-      Serial.println("ventana abierta no muevas motor");
+      //put luz_interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 0;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 1;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
     }else if (sensorLuz < luz_min && estado_persiana == 0){
+      Serial.println("Es de noche y la ventana esta cerrada");
       digitalWrite(D1, HIGH);
-      Serial.println("Led on"); 
-      Serial.println("ventana ya cerrada");
+      //put luz interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persianas
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
     }
   }
 
-
-
-//put de la base de datos
+//put Sensor de luz
   StaticJsonBuffer<300> JSONbuffer;
   JsonObject& JSONencoder = JSONbuffer.createObject();
   JSONencoder["id"] = 7;JSONencoder["fecha"] = 23;JSONencoder["nombre"] = "delos";JSONencoder["valor"] = sensorLuz;JSONencoder["localizacion_nombre"] = "Habitacion";
   char JSONmessageBuffer[300];
   JSONencoder.printTo(JSONmessageBuffer);
   int statusPut = client.put("/api/sensores/",JSONmessageBuffer);
-  Serial.println("isnserccion:");
-  Serial.println(statusPut);
+  Serial.println("Sensor Actualizado");
   delay(20000);
 }
