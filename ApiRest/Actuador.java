@@ -1,20 +1,18 @@
 package dad.us.dadVertx;
 
-import java.sql.Date;
-
 public class Actuador {
 		private Integer id;
-		private Date fecha;
+		private Double velocidad;
 		private Boolean sentido;
 		
 		public Actuador(){
 			this(0,null,false);
 		}
 
-		public Actuador(Integer id, Date fecha, Boolean sentido) {
+		public Actuador(Integer id, Double velocidad, Boolean sentido) {
 			super();
 			this.id = id;
-			this.fecha = fecha;
+			this.velocidad = velocidad;
 			this.sentido = sentido;
 		}
 
@@ -26,12 +24,12 @@ public class Actuador {
 			this.id = id;
 		}
 
-		public Date getFecha() {
-			return fecha;
+		public Double getVelocidad() {
+			return velocidad;
 		}
 
-		public void setfecha(Date fecha) {
-			this.fecha = fecha;
+		public void setFecha(Double velocidad) {
+			this.velocidad = velocidad;
 		}
 
 		public Boolean getSentido() {
@@ -48,7 +46,7 @@ public class Actuador {
 			int result = 1;
 			result = prime * result + ((id == null) ? 0 : id.hashCode());
 			result = prime * result + ((sentido == null) ? 0 : sentido.hashCode());
-			result = prime * result + ((fecha == null) ? 0 : fecha.hashCode());
+			result = prime * result + ((velocidad == null) ? 0 : velocidad.hashCode());
 			return result;
 		}
 
@@ -71,16 +69,16 @@ public class Actuador {
 					return false;
 			} else if (!sentido.equals(other.sentido))
 				return false;
-			if (fecha == null) {
-				if (other.fecha != null)
+			if (velocidad == null) {
+				if (other.velocidad != null)
 					return false;
-			} else if (!fecha.equals(other.fecha))
+			} else if (!velocidad.equals(other.velocidad))
 				return false;
 			return true;
 		}
 
 		@Override
 		public String toString() {
-			return "Actuador [id=" + id + ", velocidad=" + fecha + ", sentido=" + sentido + "]";
+			return "Actuador [id=" + id + ", velocidad=" + velocidad + ", sentido=" + sentido + "]";
 		}
 }

@@ -180,9 +180,9 @@ public class Api extends AbstractVerticle{
 				mySQLClient.getConnection(conn -> {
 					if (conn.succeeded()) {
 						SQLConnection connection = conn.result();
-						String query = "SELECT id, max(fecha), nombre, valor, localizacion_nombre  "
+						String query = "SELECT id, fecha, nombre, valor, localizacion_nombre  "
 								+ "FROM sensores "
-								+ "WHERE id = ?";
+								+ "WHERE id = ? and fecha = (SELECT max(fecha) from sensores)";
 						JsonArray paramQuery = new JsonArray()
 								.add(param);
 						connection.queryWithParams(
@@ -218,7 +218,7 @@ public class Api extends AbstractVerticle{
 				mySQLClient.getConnection(conn -> {
 					if (conn.succeeded()) {
 						SQLConnection connection = conn.result();
-						String query = "SELECT id, fecha, sentido  "
+						String query = "SELECT id, velocidad, sentido  "
 								+ "FROM actuadores "
 								+ "WHERE id = ?";
 						JsonArray paramQuery = new JsonArray()
@@ -267,7 +267,7 @@ public class Api extends AbstractVerticle{
 	private void putLucesInterior(RoutingContext routingContext) {
 		LuzInterior state = Json.decodeValue(routingContext.getBodyAsString(), LuzInterior.class);
 				
-		String update = "INSERT INTO luces_interior (id, estado, localizacion_nombre) VALUES ("+state.getId() + ",'" + state.isEstado() + "','" + state.getLocalizacion_nombre()+"')";
+		String update = "UPDATE luces_interior SET estado =" +state.isEstado()+ " where id ="  + state.getId();
 		mySQLClient.update(update, res -> {
 		      if (res.succeeded()) {
 
@@ -284,7 +284,7 @@ public class Api extends AbstractVerticle{
 	private void putPersianas(RoutingContext routingContext) {
 		Persiana state = Json.decodeValue(routingContext.getBodyAsString(), Persiana.class);
 				
-		String update = "INSERT INTO luces_interior (id, estado, localizacion_nombre) VALUES ("+state.getId() + ",'" + state.isEstado() + "','" + state.getLocalizacion_nombre()+"')";
+		String update = "UPDATE persianas SET estado=" + state.isEstado() + " WHERE id_actuador=" + state.getId();
 		mySQLClient.update(update, res -> {
 		      if (res.succeeded()) {
 
@@ -309,7 +309,6 @@ public class Api extends AbstractVerticle{
         
         
 		String update = "INSERT INTO sensores(id, fecha, nombre, valor, localizacion_nombre) VALUES ("+state.getId() + "," + "STR_TO_DATE('" + mes + "-" + dia + "-"+ anyo + " " + hora + ":" + minuto + ":" + segundo + "','%m-%d-%Y %H:%i:%s')" + ",'" + state.getNombre()+"',"+ state.getValor()+ ",'"+ state.getLocalizacion_nombre()+"')";
-		System.out.println(update);
 		mySQLClient.update(update, res -> {
 		      if (res.succeeded()) {
 		        UpdateResult result = res.result();
@@ -324,7 +323,7 @@ public class Api extends AbstractVerticle{
 	private void putActuadores(RoutingContext routingContext) {
 		Actuador state = Json.decodeValue(routingContext.getBodyAsString(), Actuador.class);
 				
-		String update = "INSERT INTO actuadores(id, fecha, sentido) VALUES ("+state.getId() + ",'" + state.getFecha() + "','" + state.getSentido()+"',"+ "')";
+		String update = "UPDATE actuadores SET sentido="+state.getSentido() + " Where id = " + state.getId();
 		mySQLClient.update(update, res -> {
 		      if (res.succeeded()) {
 
