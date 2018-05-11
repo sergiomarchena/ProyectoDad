@@ -74,8 +74,9 @@ public class Api extends AbstractVerticle{
 								query, 
 								paramQuery, 
 								res -> {
+									connection.close();
 									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
 									}else {
 										routingContext.response().setStatusCode(400).end(
 												"Error: " + res.cause());	
@@ -112,8 +113,9 @@ public class Api extends AbstractVerticle{
 								query, 
 								paramQuery, 
 								res -> {
+									connection.close();
 									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
 									}else {
 										routingContext.response().setStatusCode(400).end(
 												"Error: " + res.cause());	
@@ -151,8 +153,9 @@ public class Api extends AbstractVerticle{
 								query, 
 								paramQuery, 
 								res -> {
+									connection.close();
 									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
 									}else {
 										routingContext.response().setStatusCode(400).end(
 												"Error: " + res.cause());	
@@ -189,8 +192,9 @@ public class Api extends AbstractVerticle{
 								query, 
 								paramQuery, 
 								res -> {
+									connection.close();
 									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
 									}else {
 										routingContext.response().setStatusCode(400).end(
 												"Error: " + res.cause());	
@@ -227,8 +231,9 @@ public class Api extends AbstractVerticle{
 								query, 
 								paramQuery, 
 								res -> {
+									connection.close();
 									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows()));
+										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
 									}else {
 										routingContext.response().setStatusCode(400).end(
 												"Error: " + res.cause());	
@@ -337,5 +342,4 @@ public class Api extends AbstractVerticle{
 		    });
 	}
 }
-
 
