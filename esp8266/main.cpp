@@ -4,9 +4,9 @@
 #include <ESP8266Wifi.h>
 #include <RestClient.h>
 
-const char* ssid = "Orange-12A1";
-const char* pass = "375772F7";
-RestClient client = RestClient("192.168.1.102",8083);
+const char* ssid = "penya";
+const char* pass = "12345678";
+RestClient client = RestClient("192.168.43.100",8083);
 
 void setup() {
   pinMode(D1,OUTPUT);
@@ -30,41 +30,25 @@ void loop() {
   //leemos datos del sensor
   int sensorLuz = analogRead(A0);
   int sensorHumedad = random(800,1000);
-  int estado_persiana = random(0,2); // borrar cuando tengamos el get
-  int lluvia_min = 900;// borrar cuando tengamos el get
-  int luz_min = 500;// borrar cuando tengamos el get
   //motor gira derecha "cierra" 1
   //motor gira izquierda "abre" 0
 
   //get de la base de datos
-  String sensores = "";
-  //String sensorHumedad="";
   String localizaciones = "";
   String persianas = "";
-
-	int statusCodeSensorLuz = client.get("/api/sensores/7",&sensores);
-	//int statusCodeSensorHumedad = client.get("/api/sensores/1",&sensorHumedad);
-	int statusCodeLocalizaciones = client.get("/api/Localizaciones/Habitacion",&localizaciones);
-  int statusCodepersianas = client.get("/api/persianas/7",&persianas);
-	//Serial.println(statusCode);
-  //Serial.println(response);
-
-  const int size_t_capacity = JSON_OBJECT_SIZE(5) + JSON_ARRAY_SIZE(2) + 60;
+	int statusCodeLocalizaciones = client.get("/api/localizaciones/Habitacion",&localizaciones);
+  int statusCodepersianas = client.get("/api/persianas/1",&persianas);
+  const int size_t_capacity = 300;
+  //const int size_t_capacity = JSON_OBJECT_SIZE(5) + JSON_ARRAY_SIZE(2) + 60;
   DynamicJsonBuffer jsonBuffer(size_t_capacity);
-  JsonObject& root = jsonBuffer.parseObject(sensores);
+  JsonObject& getLocalizacion = jsonBuffer.parseObject(localizaciones);
+  JsonObject& getPersianas = jsonBuffer.parseObject(persianas);
 
-  //  if(!root.success()){
-  //        Serial.println("Parse Failed...");
-  //      }
-  //
-	// double valor = root["valor"];
-  // Serial.println(valor);
-
-
+ //variables de estado
+ int luz_min = getLocalizacion["luz_min"];
+ int lluvia_min = getLocalizacion["lluvia_min"];
+ int estado_persiana = getPersianas["estado"];
   //Funcionalidad del programa
-  Serial.println(sensorLuz);
-  Serial.println(sensorHumedad);
-  Serial.println(estado_persiana);
   if(sensorHumedad > lluvia_min && estado_persiana == 1){
     Serial.println("Esta lloviendo: cierra la ventana y enciende la luz");
     digitalWrite(D1, HIGH);
