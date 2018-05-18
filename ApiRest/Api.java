@@ -1,345 +1,329 @@
-package dad.us.dadVertx;
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266Wifi.h>
+#include <RestClient.h>
+#include <PubSubClient.h>
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.asyncsql.MySQLClient;
-import io.vertx.ext.sql.SQLClient;
-import io.vertx.ext.sql.SQLConnection;
-import io.vertx.ext.sql.UpdateResult;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
+int motorEnable = 1;
+int contador = 0;
+WiFiClient espClient;
+PubSubClient pubsubClient(espClient);
+char msg[50];
+const char* serverIP = "192.168.1.102";
+RestClient client = RestClient(serverIP, 8083);
+const char* ssid = "Orange-12A1";
+const char* pass = "375772F7";
+// const char* ssid = "penya";
+// const char* pass = "12345678";
+String modo_usuario = "automa";
+String mensaje = "abre";
+
+void abrirPersiana(){
+  analogWrite(D2,500);
+  digitalWrite(D4,HIGH);
+  digitalWrite(D3,LOW);
+  delay(2000);
+  digitalWrite(D4,LOW);
+  digitalWrite(D3,LOW);
+}
+
+void cerrarPersiana(){
+    analogWrite(D2,500);
+    digitalWrite(D3,HIGH);
+    digitalWrite(D4,LOW);
+    delay(2000);
+    digitalWrite(D4,LOW);
+    digitalWrite(D3,LOW);
+  }
 
 
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Mensaje recibido [");
+  Serial.print(topic);
+  Serial.print("] ");
+  String message = String((char *)payload);
 
-public class Api extends AbstractVerticle{
-	
-	private SQLClient mySQLClient;
-	
-	public void start(Future<Void> startFuture) {
-		
-		JsonObject mySQLClientConfig = new JsonObject()
-				.put("host", "127.0.0.1")
-				.put("port", 3306)
-				.put("database", "dad")
-				.put("username", "root")
-				.put("password", "sergio");
-		
-		mySQLClient = MySQLClient.createShared
-				(vertx, mySQLClientConfig);
+  Serial.print(message);
+  Serial.println();
 
-		Router router = Router.router(vertx);
+  // Trabajar con el mensaje
+  //String value = message;
 
-		vertx.createHttpServer().requestHandler(router::accept).listen(8083, res -> {
-			if (res.succeeded()) {
-				System.out.println("Servidor REST desplegado");
-			} else {
-				System.out.println("Error: " + res.cause());
-			}
-		});
+  modo_usuario = message.substring(0, 6);
+  mensaje = message.substring(7, 11);
+  Serial.println(modo_usuario);
+  Serial.println(mensaje);
+}
+void setup() {
+  pinMode(D1,OUTPUT);
+  pinMode(D4,OUTPUT);
+  pinMode(D3,OUTPUT);
+  pinMode(D2,OUTPUT);
+  digitalWrite(D2,LOW);
+  Serial.begin(115200);
 
-		router.route("/api/*").handler(BodyHandler.create());
-		router.get("/api/localizaciones/:nombre").handler(this::getLocalizaciones);
-		router.get("/api/luces_interior/:id").handler(this::getLucesInterior);
-		router.get("/api/persianas/:id").handler(this::getPersianas);
-		router.get("/api/sensores/:id").handler(this::getSensores);
-		router.get("/api/actuador/:id").handler(this::getActuadores);
-		router.put("/api/localizaciones").handler(this::putLocalizaciones);
-		router.put("/api/luces_interior").handler(this::putLucesInterior);
-		router.put("/api/persianas").handler(this::putPersianas);
-		router.put("/api/sensores").handler(this::putSensores);
-		router.put("/api/actuador").handler(this::putActuadores);	
+	WiFi.mode(WIFI_STA);
+	WiFi.begin(ssid, pass);
+
+	while(WiFi.status() != WL_CONNECTED){
+		delay(1000);
+		Serial.print(".");
 	}
 
-	private void getLocalizaciones(RoutingContext routingContext) {
-		String paramStr = routingContext.request().getParam("nombre");
-		if (paramStr != null) {
-			try {
-				String param = paramStr;
-				
-				mySQLClient.getConnection(conn -> {
-					if (conn.succeeded()) {
-						SQLConnection connection = conn.result();
-						String query = "SELECT nombre, lluvia_max, lluvia_min, luz_max, luz_min, alarma  "
-								+ "FROM localizaciones "
-								+ "WHERE nombre = ?";
-						JsonArray paramQuery = new JsonArray()
-								.add(param);
-						connection.queryWithParams(
-								query, 
-								paramQuery, 
-								res -> {
-									connection.close();
-									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
-									}else {
-										routingContext.response().setStatusCode(400).end(
-												"Error: " + res.cause());	
-									}
-								});
-					}else {
-						routingContext.response().setStatusCode(400).end(
-								"Error: " + conn.cause());
-					}
-				});
-								
-			}catch (ClassCastException e) {
-				routingContext.response().setStatusCode(400).end();
-			}
-		}else {
-			routingContext.response().setStatusCode(400).end();
+	Serial.println("Conexión establecida");
+	Serial.print("IP asignada: ");
+	Serial.println(WiFi.localIP());
+  pubsubClient.setServer(serverIP, 1883);
+  pubsubClient.setCallback(callback);
+}
+
+void reconnect() {
+	while (!pubsubClient.connected()) {
+		//Serial.print("Conectando al servidor MQTT");
+		if (pubsubClient.connect("ESP8266Client")) {
+			Serial.println("Conectado");
+			pubsubClient.publish("topic_2", "iiiiiiiiiiiih");
+			pubsubClient.subscribe("topic_2");
+		} else {
+			Serial.print("Error, rc=");
+			Serial.print(pubsubClient.state());
+			Serial.println(" Reintentando en 5 segundos");
+			delay(5000);
 		}
-	}
-	private void getLucesInterior(RoutingContext routingContext) {
-		String paramStr = routingContext.request().getParam("id");
-		if (paramStr != null) {
-			try {
-				int param = Integer.parseInt(paramStr);
-				
-				mySQLClient.getConnection(conn -> {
-					if (conn.succeeded()) {
-						SQLConnection connection = conn.result();
-						String query = "SELECT id, estado, localizacion_nombre  "
-								+ "FROM luces_interior "
-								+ "WHERE id = ?";
-						JsonArray paramQuery = new JsonArray()
-								.add(param);
-						connection.queryWithParams(
-								query, 
-								paramQuery, 
-								res -> {
-									connection.close();
-									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
-									}else {
-										routingContext.response().setStatusCode(400).end(
-												"Error: " + res.cause());	
-									}
-								});
-					}else {
-						routingContext.response().setStatusCode(400).end(
-								"Error: " + conn.cause());
-					}
-				});
-								
-			}catch (ClassCastException e) {
-				routingContext.response().setStatusCode(400).end();
-			}
-		}else {
-			routingContext.response().setStatusCode(400).end();
-		}
-	}
-	
-	private void getPersianas(RoutingContext routingContext) {
-		String paramStr = routingContext.request().getParam("id");
-		if (paramStr != null) {
-			try {
-				int param = Integer.parseInt(paramStr);
-				
-				mySQLClient.getConnection(conn -> {
-					if (conn.succeeded()) {
-						SQLConnection connection = conn.result();
-						String query = "SELECT id, estado, localizacion_nombre, id_actuador  "
-								+ "FROM persianas "
-								+ "WHERE id = ?";
-						JsonArray paramQuery = new JsonArray()
-								.add(param);
-						connection.queryWithParams(
-								query, 
-								paramQuery, 
-								res -> {
-									connection.close();
-									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
-									}else {
-										routingContext.response().setStatusCode(400).end(
-												"Error: " + res.cause());	
-									}
-								});
-					}else {
-						routingContext.response().setStatusCode(400).end(
-								"Error: " + conn.cause());
-					}
-				});
-								
-			}catch (ClassCastException e) {
-				routingContext.response().setStatusCode(400).end();
-			}
-		}else {
-			routingContext.response().setStatusCode(400).end();
-		}
-	}
-	private void getSensores(RoutingContext routingContext) {
-		String paramStr = routingContext.request().getParam("id");
-		if (paramStr != null) {
-			try {
-				int param = Integer.parseInt(paramStr);
-				
-				mySQLClient.getConnection(conn -> {
-					if (conn.succeeded()) {
-						SQLConnection connection = conn.result();
-						String query = "SELECT id, fecha, nombre, valor, localizacion_nombre  "
-								+ "FROM sensores "
-								+ "WHERE id = ? and fecha = (SELECT max(fecha) from sensores)";
-						JsonArray paramQuery = new JsonArray()
-								.add(param);
-						connection.queryWithParams(
-								query, 
-								paramQuery, 
-								res -> {
-									connection.close();
-									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
-									}else {
-										routingContext.response().setStatusCode(400).end(
-												"Error: " + res.cause());	
-									}
-								});
-					}else {
-						routingContext.response().setStatusCode(400).end(
-								"Error: " + conn.cause());
-					}
-				});
-								
-			}catch (ClassCastException e) {
-				routingContext.response().setStatusCode(400).end();
-			}
-		}else {
-			routingContext.response().setStatusCode(400).end();
-		}
-	}
-	private void getActuadores(RoutingContext routingContext) {
-		String paramStr = routingContext.request().getParam("id");
-		if (paramStr != null) {
-			try {
-				int param = Integer.parseInt(paramStr);
-				
-				mySQLClient.getConnection(conn -> {
-					if (conn.succeeded()) {
-						SQLConnection connection = conn.result();
-						String query = "SELECT id, velocidad, sentido  "
-								+ "FROM actuadores "
-								+ "WHERE id = ?";
-						JsonArray paramQuery = new JsonArray()
-								.add(param);
-						connection.queryWithParams(
-								query, 
-								paramQuery, 
-								res -> {
-									connection.close();
-									if (res.succeeded()) {
-										routingContext.response().end(Json.encodePrettily(res.result().getRows().get(0)));
-									}else {
-										routingContext.response().setStatusCode(400).end(
-												"Error: " + res.cause());	
-									}
-								});
-					}else {
-						routingContext.response().setStatusCode(400).end(
-								"Error: " + conn.cause());
-					}
-				});
-								
-			}catch (ClassCastException e) {
-				routingContext.response().setStatusCode(400).end();
-			}
-		}else {
-			routingContext.response().setStatusCode(400).end();
-		}
-	}
-	
-	private void putLocalizaciones(RoutingContext routingContext) {
-		Localizacion state = Json.decodeValue(routingContext.getBodyAsString(), Localizacion.class);
-				
-		String update = "INSERT INTO localizaciones(nombre, lluvia_max, lluvia_min, luz_max, luz_min, alarma) VALUES ('"+state.getNombre() + "','" + state.getLluvia_max() + "','" + state.getLluvia_min()+"','"+ state.getLuz_max()+ "','"+ state.getLuz_min()+"','"+ state.getAlarma()+"')";
-		mySQLClient.update(update, res -> {
-		      if (res.succeeded()) {
-
-		        UpdateResult result = res.result();
-		        System.out.println("Updated no. of rows: " + result.getUpdated());
-		        System.out.println("Generated keys: " + result.getKeys());
-		        routingContext.response().setStatusCode(200).end();
-		      } else {
-		        routingContext.response().setStatusCode(400).end();
-		      }
-		    });
-	}
-	private void putLucesInterior(RoutingContext routingContext) {
-		LuzInterior state = Json.decodeValue(routingContext.getBodyAsString(), LuzInterior.class);
-				
-		String update = "UPDATE luces_interior SET estado =" +state.isEstado()+ " where id ="  + state.getId();
-		mySQLClient.update(update, res -> {
-		      if (res.succeeded()) {
-
-		        UpdateResult result = res.result();
-		        System.out.println("Updated no. of rows: " + result.getUpdated());
-		        System.out.println("Generated keys: " + result.getKeys());
-		        routingContext.response().setStatusCode(200).end();
-		      } else {
-		    	  routingContext.response().setStatusCode(400).end();
-		      }
-		    });
-	}
-	
-	private void putPersianas(RoutingContext routingContext) {
-		Persiana state = Json.decodeValue(routingContext.getBodyAsString(), Persiana.class);
-				
-		String update = "UPDATE persianas SET estado=" + state.isEstado() + " WHERE id_actuador=" + state.getId();
-		mySQLClient.update(update, res -> {
-		      if (res.succeeded()) {
-
-		        UpdateResult result = res.result();
-		        System.out.println("Updated no. of rows: " + result.getUpdated());
-		        System.out.println("Generated keys: " + result.getKeys());
-		        routingContext.response().setStatusCode(200).end();
-		      } else {
-		    	routingContext.response().setStatusCode(400).end();
-		      }
-		    });
-	}
-	private void putSensores(RoutingContext routingContext) {
-		Sensor state = Json.decodeValue(routingContext.getBodyAsString(), Sensor.class);
-		Calendar fecha = new GregorianCalendar();
-        int anyo = fecha.get(Calendar.YEAR);
-        int mes = fecha.get(Calendar.MONTH) + 1;
-        int dia = fecha.get(Calendar.DAY_OF_MONTH);
-        int hora = fecha.get(Calendar.HOUR_OF_DAY);
-        int minuto = fecha.get(Calendar.MINUTE);
-        int segundo = fecha.get(Calendar.SECOND);
-        
-        
-		String update = "INSERT INTO sensores(id, fecha, nombre, valor, localizacion_nombre) VALUES ("+state.getId() + "," + "STR_TO_DATE('" + mes + "-" + dia + "-"+ anyo + " " + hora + ":" + minuto + ":" + segundo + "','%m-%d-%Y %H:%i:%s')" + ",'" + state.getNombre()+"',"+ state.getValor()+ ",'"+ state.getLocalizacion_nombre()+"')";
-		mySQLClient.update(update, res -> {
-		      if (res.succeeded()) {
-		        UpdateResult result = res.result();
-		        System.out.println("Updated no. of rows: " + result.getUpdated());
-		        System.out.println("Generated keys: " + result.getKeys());
-		        routingContext.response().setStatusCode(200).end();
-		      } else {
-		    	  routingContext.response().setStatusCode(400).end();
-		      }
-		    });
-	}
-	private void putActuadores(RoutingContext routingContext) {
-		Actuador state = Json.decodeValue(routingContext.getBodyAsString(), Actuador.class);
-				
-		String update = "UPDATE actuadores SET sentido="+state.getSentido() + " Where id = " + state.getId();
-		mySQLClient.update(update, res -> {
-		      if (res.succeeded()) {
-
-		        UpdateResult result = res.result();
-		        System.out.println("Updated no. of rows: " + result.getUpdated());
-		        System.out.println("Generated keys: " + result.getKeys());
-		        routingContext.response().setStatusCode(200).end();
-		      } else {
-		    	  routingContext.response().setStatusCode(400).end();
-		      }
-		    });
 	}
 }
 
+
+
+
+void loop() {
+  //leemos datos del sensor
+
+  int sensorLuz = analogRead(A0);
+  int sensorHumedad = random(700,1000);
+
+  //motor gira derecha "cierra" 1
+  //motor gira izquierda "abre" 0
+
+  //get de la base de datos
+  String localizaciones = "";
+  String persianas = "";
+	int statusCodeLocalizaciones = client.get("/api/localizaciones/Habitacion",&localizaciones);
+  int statusCodepersianas = client.get("/api/persianas/1",&persianas);
+  const int size_t_capacity = 300;
+  DynamicJsonBuffer jsonBuffer(size_t_capacity);
+  JsonObject& getLocalizacion = jsonBuffer.parseObject(localizaciones);
+  JsonObject& getPersianas = jsonBuffer.parseObject(persianas);
+
+ //variables de estado
+ int luz_min = getLocalizacion["luz_min"];
+ int lluvia_min = getLocalizacion["lluvia_min"];
+ int estado_persiana = getPersianas["estado"];
+  //Funcionalidad del programa
+  if(modo_usuario == "manual"){
+    if (mensaje=="abre"){
+      if(estado_persiana==0){
+        Serial.println("El usuario abre la persiana manualmente");
+        digitalWrite(D1, LOW);
+        abrirPersiana();
+        //put luz_interior
+        StaticJsonBuffer<300> JSONbuffer;
+        JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+        JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 0;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+        char JSONmessageLuz[300];
+        JSONLuz_interior.printTo(JSONmessageLuz);
+        int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+        //put persiana
+        JsonObject& JSONPersiana = JSONbuffer.createObject();
+        JSONPersiana["id"] = 1;JSONPersiana["estado"] = 1;JSONPersiana["localizacion_nombre"] = "Habitacion";
+        char JSONmessagePersiana[300];
+        JSONPersiana.printTo(JSONmessagePersiana);
+        int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+        //put Actuador
+        JsonObject& JSONActuador = JSONbuffer.createObject();
+        JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 0;
+        char JSONmessageActuador[300];
+        JSONActuador.printTo(JSONmessageActuador);
+        int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
+      }else{
+        Serial.println("No se hace nada porque la persiana esta ya abierta");
+      }
+    }else if (mensaje=="cier"){
+      if(estado_persiana==1){
+        Serial.println("El usuario cierra la persiana manualmente");
+        digitalWrite(D1, HIGH);
+        cerrarPersiana();
+        //put luz_interior
+        StaticJsonBuffer<300> JSONbuffer;
+        JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+        JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+        char JSONmessageLuz[300];
+        JSONLuz_interior.printTo(JSONmessageLuz);
+        int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+        // put persiana
+        JsonObject& JSONPersiana = JSONbuffer.createObject();
+        JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+        char JSONmessagePersiana[300];
+        JSONPersiana.printTo(JSONmessagePersiana);
+        int statusPutpersiana = client.put("/api/persianas/",JSONmessagePersiana);
+        //put actuador
+        JsonObject& JSONActuador = JSONbuffer.createObject();
+        JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 1;
+        char JSONmessageActuador[300];
+        JSONActuador.printTo(JSONmessageActuador);
+        int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+      }else{
+        Serial.println("No se hace nada porque la persiana esta ya cerrada");
+      }
+    }
+
+  }else if (modo_usuario == "automa"){
+
+  if(sensorHumedad > lluvia_min && estado_persiana == 1){
+    Serial.println("Esta lloviendo: cierra la ventana y enciende la luz");
+    digitalWrite(D1, HIGH);
+    cerrarPersiana();
+    //put luz_interior
+    StaticJsonBuffer<300> JSONbuffer;
+    JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+    JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+    char JSONmessageLuz[300];
+    JSONLuz_interior.printTo(JSONmessageLuz);
+    int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+    // put persiana
+    JsonObject& JSONPersiana = JSONbuffer.createObject();
+    JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+    char JSONmessagePersiana[300];
+    JSONPersiana.printTo(JSONmessagePersiana);
+    int statusPutpersiana = client.put("/api/persianas/",JSONmessagePersiana);
+    //put actuador
+    JsonObject& JSONActuador = JSONbuffer.createObject();
+    JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 1;
+    char JSONmessageActuador[300];
+    JSONActuador.printTo(JSONmessageActuador);
+    int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
+
+  }else if (sensorHumedad > lluvia_min && estado_persiana == 0){
+    Serial.println("Esta lloviendo pero la ventana esta cerrada y la luz encendida");
+    digitalWrite(D1, HIGH);
+    //put luz_interior
+    StaticJsonBuffer<300> JSONbuffer;
+    JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+    JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+    char JSONmessageLuz[300];
+    JSONLuz_interior.printTo(JSONmessageLuz);
+    int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+    //put persiana
+    JsonObject& JSONPersiana = JSONbuffer.createObject();
+    JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+    char JSONmessagePersiana[300];
+    JSONPersiana.printTo(JSONmessagePersiana);
+    int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+
+  }else{
+    if(sensorLuz < luz_min && estado_persiana == 1){
+      Serial.println("Es de noche y la ventana esta abierta: cierra la ventana y enciende la luz");
+      digitalWrite(D1, HIGH);
+      cerrarPersiana();
+      //put Luz interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      // put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+      //put actuador
+      JsonObject& JSONActuador = JSONbuffer.createObject();
+      JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 1;
+      char JSONmessageActuador[300];
+      JSONActuador.printTo(JSONmessageActuador);
+      int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
+
+    }else if (sensorLuz > luz_min && estado_persiana == 0 && sensorHumedad < lluvia_min){
+      Serial.println("Es de dia y la ventana esta cerrada: apaga la luz abre ventana");
+      digitalWrite(D1, LOW);
+      abrirPersiana();
+      //put luz_interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 0;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 1;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+      //put Actuador
+      JsonObject& JSONActuador = JSONbuffer.createObject();
+      JSONActuador["id"] = 1;JSONActuador["velocidad"] = 20;JSONActuador["sentido"] = 0;
+      char JSONmessageActuador[300];
+      JSONActuador.printTo(JSONmessageActuador);
+      int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
+
+
+    }else if(sensorLuz > luz_min && estado_persiana == 1 && sensorHumedad < lluvia_min){
+      Serial.println("Es de dia y la ventana esta abierta");
+      digitalWrite(D1, LOW);
+      //put luz_interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 0;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persiana
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 1;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+    }else if (sensorLuz < luz_min && estado_persiana == 0){
+      Serial.println("Es de noche y la ventana esta cerrada");
+      digitalWrite(D1, HIGH);
+      //put luz interior
+      StaticJsonBuffer<300> JSONbuffer;
+      JsonObject& JSONLuz_interior = JSONbuffer.createObject();
+      JSONLuz_interior["id"] = 7;JSONLuz_interior["estado"] = 1;JSONLuz_interior["localizacion_nombre"] = "Habitacion";
+      char JSONmessageLuz[300];
+      JSONLuz_interior.printTo(JSONmessageLuz);
+      int statusPutLuz = client.put("/api/luces_interior/",JSONmessageLuz);
+      //put persianas
+      JsonObject& JSONPersiana = JSONbuffer.createObject();
+      JSONPersiana["id"] = 1;JSONPersiana["estado"] = 0;JSONPersiana["localizacion_nombre"] = "Habitacion";
+      char JSONmessagePersiana[300];
+      JSONPersiana.printTo(JSONmessagePersiana);
+      int statusPutPersiana = client.put("/api/persianas/",JSONmessagePersiana);
+    }
+  }
+}
+//put Sensor de luz
+  StaticJsonBuffer<300> JSONbuffer;
+  JsonObject& JSONencoder = JSONbuffer.createObject();
+  JSONencoder["id"] = 7;JSONencoder["fecha"] = 23;JSONencoder["nombre"] = "delos";JSONencoder["valor"] = sensorLuz;JSONencoder["localizacion_nombre"] = "Habitacion";
+  char JSONmessageBuffer[300];
+  JSONencoder.printTo(JSONmessageBuffer);
+  int statusPut = client.put("/api/sensores/",JSONmessageBuffer);
+  Serial.println("Sensor Actualizado");
+  if (!pubsubClient.connected()) {
+    reconnect();
+  }
+
+  pubsubClient.loop();
+  snprintf (msg, 75, "Estoy conectado");
+  pubsubClient.publish("topic_2", msg);
+  delay(5000);
+
+}
