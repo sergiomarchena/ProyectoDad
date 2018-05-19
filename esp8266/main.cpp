@@ -6,7 +6,6 @@
 #include <PubSubClient.h>
 
 int motorEnable = 1;
-int contador = 0;
 WiFiClient espClient;
 PubSubClient pubsubClient(espClient);
 char msg[50];
@@ -39,21 +38,11 @@ void cerrarPersiana(){
 
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Mensaje recibido [");
-  Serial.print(topic);
-  Serial.print("] ");
   String message = String((char *)payload);
-
-  Serial.print(message);
-  Serial.println();
-
   // Trabajar con el mensaje
-  //String value = message;
-
   modo_usuario = message.substring(0, 6);
   mensaje = message.substring(7, 11);
-  Serial.println(modo_usuario);
-  Serial.println(mensaje);
+
 }
 void setup() {
   pinMode(D1,OUTPUT);
