@@ -9,29 +9,30 @@ int motorEnable = 1;
 WiFiClient espClient;
 PubSubClient pubsubClient(espClient);
 char msg[50];
-const char* serverIP = "192.168.1.102";
+//const char* serverIP = "192.168.1.102";
+const char* serverIP = "192.168.43.100";
 RestClient client = RestClient(serverIP, 8083);
-const char* ssid = "Orange-12A1";
-const char* pass = "375772F7";
-// const char* ssid = "penya";
-// const char* pass = "12345678";
+// const char* ssid = "Orange-12A1";
+// const char* pass = "375772F7";
+const char* ssid = "penya";
+const char* pass = "12345678";
 String modo_usuario = "automa";
 String mensaje = "abre";
 
 void abrirPersiana(){
-  analogWrite(D2,500);
+  analogWrite(D2,600);
   digitalWrite(D4,HIGH);
   digitalWrite(D3,LOW);
-  delay(2000);
+  delay(1500);
   digitalWrite(D4,LOW);
   digitalWrite(D3,LOW);
 }
 
 void cerrarPersiana(){
-    analogWrite(D2,500);
+    analogWrite(D2,600);
     digitalWrite(D3,HIGH);
     digitalWrite(D4,LOW);
-    delay(2000);
+    delay(1500);
     digitalWrite(D4,LOW);
     digitalWrite(D3,LOW);
   }
@@ -137,7 +138,7 @@ void loop() {
         int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
 
       }else{
-        Serial.println("No se hace nada porque la persiana esta ya abierta");
+        Serial.println("No se hace nada porque la persiana esta ya abierta manualmente");
       }
     }else if (mensaje=="cier"){
       if(estado_persiana==1){
@@ -164,7 +165,7 @@ void loop() {
         JSONActuador.printTo(JSONmessageActuador);
         int statusPutActuador = client.put("/api/actuador/",JSONmessageActuador);
       }else{
-        Serial.println("No se hace nada porque la persiana esta ya cerrada");
+        Serial.println("No se hace nada porque la persiana esta ya cerrada manualmente");
       }
     }
 
@@ -313,6 +314,6 @@ void loop() {
   pubsubClient.loop();
   snprintf (msg, 75, "Estoy conectado");
   pubsubClient.publish("topic_2", msg);
-  delay(5000);
+  delay(1000);
 
 }

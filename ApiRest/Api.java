@@ -88,7 +88,7 @@ public class Api extends AbstractVerticle{
 		
 
 		MqttClient mqttClient2 = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-		mqttClient2.connect(1883, "192.168.1.102", s -> {
+		mqttClient2.connect(1883, "192.168.43.100", s -> {
 
 			mqttClient2.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
 				if (handler.succeeded()) {
@@ -496,7 +496,7 @@ public class Api extends AbstractVerticle{
 	
 	private void getMqttManualAbre(RoutingContext routingContext) {
 		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-		mqttClient.connect(1883, "192.168.1.102", s -> {
+		mqttClient.connect(1883, "192.168.43.100", s -> {
 			
 			
 			mqttClient.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
@@ -506,12 +506,12 @@ public class Api extends AbstractVerticle{
 				}
 			});
 			mqttClient.publish("topic_2", Buffer.buffer("manual,abre"), MqttQoS.AT_LEAST_ONCE, false, false);
-
+			routingContext.response().setStatusCode(200).end();
 		});
 	}
 	private void getMqttManualCierra(RoutingContext routingContext) {
 		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-		mqttClient.connect(1883, "192.168.1.102", s -> {
+		mqttClient.connect(1883, "192.168.43.100", s -> {
 			
 			
 			mqttClient.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
@@ -521,12 +521,12 @@ public class Api extends AbstractVerticle{
 				}
 			});
 			mqttClient.publish("topic_2", Buffer.buffer("manual,cierra"), MqttQoS.AT_LEAST_ONCE, false, false);
-
+			routingContext.response().setStatusCode(200).end();
 		});
 	}
 	private void getMqttAutomatico(RoutingContext routingContext) {
 		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-		mqttClient.connect(1883, "192.168.1.102", s -> {
+		mqttClient.connect(1883, "192.168.43.100", s -> {
 			
 			
 			mqttClient.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
@@ -536,7 +536,9 @@ public class Api extends AbstractVerticle{
 				}
 			});
 			mqttClient.publish("topic_2", Buffer.buffer("automatico"), MqttQoS.AT_LEAST_ONCE, false, false);
+			routingContext.response().setStatusCode(200).end();
 
 		});
+	
 	}
 }
