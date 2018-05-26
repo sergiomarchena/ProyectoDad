@@ -1,0 +1,63 @@
+﻿
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="favicon.ico">
+
+    <title>Aplicación</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/cover.css" rel="stylesheet">
+  </head>
+
+  <body class="text-center">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+
+            <header class="masthead mb-auto">
+                    <div class="inner">
+                      <h3 class="masthead-brand">CONTROL DE PERSIANAS</h3>
+               
+                    </div>
+            </header>
+      <main role="main" class="inner cover">
+       
+        <div class="lead">
+                <!-- <h1 class="cover-heading">Opciones</h1>-->
+				</br>
+                <div class="d-flex flex-column flex-md-row " role="group" aria-label="Basic example">
+                        <button class="btn btn-success w-100 m-2" onclick="request(1)">Abrir</button>
+                        <button class="btn btn-danger w-100 m-2" onclick="request(2)">Cerrar</button>
+                        <button class="btn btn-primary w-100 m-2" onclick="request(3)">Modo Automático</button>
+                </div>
+                <div id="alerta"></div>
+        
+        </div>
+		</br>
+        <div id="chartContainer" style="height:370px; width: 100%;"></div>
+      </main>
+      <footer class="mastfoot mt-auto">
+            <div class="inner">
+              <p>2018</p>
+            </div>
+          </footer>
+    </div>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="js/jquery-slim.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery.canvasjs.min.js"></script>
+    <script src="js/canvasjs.min.js"></script>
+    <script src="js/moment-with-locales.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
